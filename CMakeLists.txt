@@ -10,6 +10,30 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(appsniffer_project
     main.cpp
+    src/core/CaptureManager.cpp
+    src/core/CaptureWorker.cpp
+    src/core/IpReassembler.cpp
+    src/core/PacketParser.cpp
+
+    src/core/Utils.cpp
+
+    src/core/CaptureManager.h
+    src/core/CaptureWorker.h
+    src/core/IpReassembler.h
+    src/core/PacketParser.h
+    src/core/ProtocolHeaders.h
+    src/core/Utils.h
+    src/core/Packet.h
+
+    src/ui/MainWindow.cpp
+    src/ui/MainWindow.h
+    src/ui/FilterDialog.cpp
+    src/ui/FilterDialog.h
+    src/ui/PacketDetailModel.cpp
+    src/ui/PacketDetailModel.h
+    src/ui/PacketTableModel.cpp
+    src/ui/PacketTableModel.h
+    
 )
 
 qt_add_qml_module(appsniffer_project
@@ -39,3 +63,4 @@ install(TARGETS appsniffer_project
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
