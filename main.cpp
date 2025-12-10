@@ -1,18 +1,12 @@
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
+#include <QApplication>
+#include "./src/ui/MainWindow.h"
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
+    QApplication a(argc, argv);
 
-    QQmlApplicationEngine engine;
-    QObject::connect(
-        &engine,
-        &QQmlApplicationEngine::objectCreationFailed,
-        &app,
-        []() { QCoreApplication::exit(-1); },
-        Qt::QueuedConnection);
-    engine.loadFromModule("sniffer_project", "Main");
+    MainWindow w;
+    w.show();
 
-    return app.exec();
+    return a.exec();
 }

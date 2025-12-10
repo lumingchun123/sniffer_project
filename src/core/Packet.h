@@ -29,7 +29,7 @@ struct PacketSummary {
     QString         dstAddr;
     QString         protocol;   // "ARP"/"TCP"/"UDP" 等
     QString         info;       // 一行简要信息，列表里显示
-    int             length;     // 报文字节数
+    int             length = 0;     // 报文字节数
 };
 
 

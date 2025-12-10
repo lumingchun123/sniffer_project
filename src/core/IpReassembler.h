@@ -4,7 +4,6 @@
 #include <QByteArray>
 #include <QElapsedTimer>
 #include "ProtocolHeaders.h"
-#include "Packet.h"
 
 struct IpFragmentKey {
     quint32 src;
@@ -49,6 +48,6 @@ private slots:
 
 private:
     bool tryAssemble(ReassemblyBuffer &buf, QByteArray &outPayload);
-
     QMap<IpFragmentKey, ReassemblyBuffer> m_buffers;
+
 };

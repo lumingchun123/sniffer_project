@@ -2,8 +2,7 @@
 #include <QObject>
 #include <QString>
 #include "Packet.h"
-
-struct pcap_t;
+#include <pcap.h>
 class PacketParser;
 class IpReassembler;
 
@@ -26,6 +25,9 @@ signals:
 private:
     void packetHandler(uchar *user, const struct pcap_pkthdr *header, const u_char *packet);//传给pcap_loop回调时用
     void captureLoop(); // 内部调用 pcap_loop / pcap_next_ex
+    static void pcapCallback(u_char *user,
+                             const struct pcap_pkthdr *header,
+                             const u_char *packet);
 
     pcap_t          *m_handle = nullptr;
     bool             m_running = false;
