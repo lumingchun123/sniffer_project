@@ -71,7 +71,7 @@ static QString arpOperToString(quint16 oper)
 
 static QString icmpTypeCodeToString(quint8 type, quint8 code)
 {
-    // 只做常见类型的友好展示（不全覆盖也没关系）
+
     if (type == 8 && code == 0)  return "Echo Request (ping)";
     if (type == 0 && code == 0)  return "Echo Reply (ping)";
     if (type == 3)               return "Destination Unreachable";
@@ -115,7 +115,6 @@ PacketDetailDialog::PacketDetailDialog(const Packet &packet, QWidget *parent)
     const auto &s = packet.summary;
     const auto &L = packet.layers;
 
-    // ---- Summary ----
     QString header;
     header += QString("Time:     %1\n").arg(s.timestamp.toString("yyyy-MM-dd HH:mm:ss.zzz"));
     header += QString("Length:   %1 bytes\n").arg(s.length);
@@ -124,7 +123,6 @@ PacketDetailDialog::PacketDetailDialog(const Packet &packet, QWidget *parent)
     header += QString("Dest:     %1\n").arg(s.dstAddr);
     header += QString("Info:     %1\n").arg(s.info);
 
-    // ---- Decoded fields ----
     QString decoded;
     decoded += "\n--- DECODED FIELDS ---\n";
 
@@ -179,7 +177,6 @@ PacketDetailDialog::PacketDetailDialog(const Packet &packet, QWidget *parent)
         decoded += QString("  Src IP:  %1\n").arg(ipToString(L.ip.srcIp));
         decoded += QString("  Dst IP:  %1\n").arg(ipToString(L.ip.dstIp));
 
-        // options 只在 IHL>20 时展示长度，避免刷屏
         if (ihl > 20) {
             decoded += QString("  Options: %1 bytes\n").arg(ihl - 20);
         }
@@ -225,12 +222,12 @@ PacketDetailDialog::PacketDetailDialog(const Packet &packet, QWidget *parent)
         decoded += QString("  Cksum:   0x%1\n").arg(L.udp.checksum, 4, 16, QLatin1Char('0')).toUpper();
     }
 
-    // App payload (如果你在 parser 里已经填了 layers.appPayload，这里会直接生效)
+ 
     decoded += "[Payload]\n";
     decoded += QString("  Size: %1 bytes\n").arg(L.appPayload.size());
     decoded += QString("  ASCII preview: %1\n").arg(payloadPreview(L.appPayload));
 
-    // ---- Raw dump ----
+
     QString raw;
     raw += "\n--- RAW HEX DUMP ---\n";
     raw += hexDump(packet.rawData);

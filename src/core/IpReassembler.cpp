@@ -42,16 +42,15 @@ bool IpReassembler::tryAssemble(ReassemblyBuffer &buf, QByteArray &outPayload)
     outPayload.clear();
     outPayload.reserve(buf.totalLength);
 
-    int currentPos = 0; // 已经拼好的字节数（从0开始）
+    int currentPos = 0; 
 
     for (const FragmentInfo &frag : buf.fragments) {
-        int start = frag.offset * 8; // offset 单位是8字节 → 转成字节
+        int start = frag.offset * 8; 
         if (start > currentPos) {
             // 中间有洞，说明还缺分片
             return false;
         }
 
-        // 处理重叠：如果新分片起点在 currentPos 之前，则跳过重叠部分
         int overlap = currentPos - start;
         if (overlap < frag.data.size()) {
             const char *dataPtr = frag.data.constData() + std::max(0, overlap);
@@ -69,7 +68,7 @@ bool IpReassembler::tryAssemble(ReassemblyBuffer &buf, QByteArray &outPayload)
         return false;
     }
 
-    // 可能因为重叠多拷了，截断到 totalLength
+    
     if (outPayload.size() > buf.totalLength) {
         outPayload.truncate(buf.totalLength);
     }
@@ -80,24 +79,23 @@ bool IpReassembler::tryAssemble(ReassemblyBuffer &buf, QByteArray &outPayload)
 QByteArray IpReassembler::feedFragment(const IpHeader &ipHeader,
                                        const QByteArray &payload)
 {
-    // 1) 先构造 key：按 (src, dst, id, protocol) 区分一条重组会话
+   
     IpFragmentKey key;
     key.src      = ipHeader.srcIp;
     key.dst      = ipHeader.dstIp;
     key.id       = ipHeader.identification;
     key.protocol = ipHeader.protocol;
 
-    // 2) 从 IP 头中取出 offset 和 MF 标志
+
     quint16 flagsOffset = ipHeader.flagsFragOffset;
-    quint16 offset8     = flagsOffset & 0x1FFF;   // 低13位
-    bool    moreFrag    = (flagsOffset & 0x2000); // MF 位（bit 13）
+    quint16 offset8     = flagsOffset & 0x1FFF;   
+    bool    moreFrag    = (flagsOffset & 0x2000); 
 
     FragmentInfo fi;
     fi.offset        = offset8;
     fi.data          = payload;    // 这里存的是当前分片的 IP payload
     fi.moreFragments = moreFrag;
 
-    // 3) 找到对应的重组缓存（若不存在会新建）
     ReassemblyBuffer &buf = m_buffers[key];
     if (!buf.timer.isValid()) {
         buf.timer.start();
@@ -111,7 +109,6 @@ QByteArray IpReassembler::feedFragment(const IpHeader &ipHeader,
         buf.totalLength = start + payload.size();   // 注意 payload 就是 IP header 后的数据
     }
 
-    // 4) 尝试拼装
     QByteArray fullPayload;
     if (tryAssemble(buf, fullPayload)) {
         // 完成了，删除这个 key 的缓存
@@ -119,7 +116,7 @@ QByteArray IpReassembler::feedFragment(const IpHeader &ipHeader,
         return fullPayload; // 返回完整的 IP payload
     }
 
-    // 还没拼好，返回空
+
     return QByteArray();
 }
 

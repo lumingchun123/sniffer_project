@@ -53,8 +53,8 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
                         parseTcp(current_head, remaining, result_packet.layers);
                         result_packet.summary = buildSummary(
                             result_packet.layers,
-                            header->len,          // 报文长度（你也可以用 caplen）
-                            header->ts            // pcap 的 timeval，直接传给你的函数
+                            header->len,         
+                            header->ts           
                             );
                         result_packet.layers.appPayload =
                             QByteArray(reinterpret_cast<const char*>(current_head), remaining);
@@ -65,8 +65,8 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
                         parseUdp(current_head, remaining, result_packet.layers);
                         result_packet.summary = buildSummary(
                             result_packet.layers,
-                            header->len,          // 报文长度（你也可以用 caplen）
-                            header->ts            // pcap 的 timeval，直接传给你的函数
+                            header->len,         
+                            header->ts           
                             );
                         result_packet.layers.appPayload =
                             QByteArray(reinterpret_cast<const char*>(current_head), remaining);
@@ -77,8 +77,8 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
                         parseIcmp(current_head, remaining, result_packet.layers);
                         result_packet.summary = buildSummary(
                             result_packet.layers,
-                            header->len,          // 报文长度（你也可以用 caplen）
-                            header->ts            // pcap 的 timeval，直接传给你的函数
+                            header->len,         
+                            header->ts            
                             );
                         result_packet.layers.appPayload =
                             QByteArray(reinterpret_cast<const char*>(current_head), remaining);
@@ -94,8 +94,8 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
                 parseTcp(current_head, remaining, result_packet.layers);
                 result_packet.summary = buildSummary(
                     result_packet.layers,
-                    header->len,          // 报文长度（你也可以用 caplen）
-                    header->ts            // pcap 的 timeval，直接传给你的函数
+                    header->len,          
+                    header->ts            
                     );
                 result_packet.layers.appPayload =
                     QByteArray(reinterpret_cast<const char*>(current_head), remaining);
@@ -106,8 +106,8 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
                 parseUdp(current_head, remaining, result_packet.layers);
                 result_packet.summary = buildSummary(
                     result_packet.layers,
-                    header->len,          // 报文长度（你也可以用 caplen）
-                    header->ts            // pcap 的 timeval，直接传给你的函数
+                    header->len,          
+                    header->ts            
                     );
                 result_packet.layers.appPayload =
                     QByteArray(reinterpret_cast<const char*>(current_head), remaining);
@@ -118,8 +118,8 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
                 parseIcmp(current_head, remaining, result_packet.layers);
                 result_packet.summary = buildSummary(
                     result_packet.layers,
-                    header->len,          // 报文长度（你也可以用 caplen）
-                    header->ts            // pcap 的 timeval，直接传给你的函数
+                    header->len,          
+                    header->ts            
                     );
                 result_packet.layers.appPayload =
                     QByteArray(reinterpret_cast<const char*>(current_head), remaining);
@@ -128,26 +128,26 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
         }
     }
 
-    else if (result_packet.layers.eth.etherType == 0x0806){ //尝试解析ARP协议
+    else if (result_packet.layers.eth.etherType == 0x0806){ 
         parseArp(current_head, remaining, result_packet.layers);
         result_packet.summary = buildSummary(
             result_packet.layers,
-            header->len,          // 报文长度（你也可以用 caplen）
-            header->ts            // pcap 的 timeval，直接传给你的函数
+            header->len,         
+            header->ts           
             );
         return result_packet;
     }
 
     else if (result_packet.layers.eth.etherType == 0x86DD) { // IPv6
-        // 1) 解析 IPv6 基本首部
+        
         if (remaining < 40) {
-            // 截断包，直接返回空
+          
             return Packet();
         }
 
         const Ipv6Header* ip6 = reinterpret_cast<const Ipv6Header*>(current_head);
 
-        // version 在高 4 位
+
         const quint8 version = (qFromBigEndian(ip6->verTcFl) >> 28) & 0x0F;
         if (version != 6) {
             return Packet();
@@ -156,56 +156,51 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
         const quint16 payloadLen = qFromBigEndian(ip6->payloadLength);
         quint8 next = ip6->nextHeader;
 
-        // 可选：存进 layers（如果你已经加了 hasIpv6/ipv6）
+
         result_packet.layers.hasIpv6 = true;
         result_packet.layers.ipv6 = *ip6;
-        result_packet.layers.networkProto = NetworkProtocol::IPv6; // 如果你有这个枚举
+        result_packet.layers.networkProto = NetworkProtocol::IPv6; 
 
-        // 把 current_head / remaining 推进到 IPv6 payload 起点
+  
         current_head += 40;
         remaining -= 40;
 
-        // IPv6 的 payloadLen 表示“IPv6 基本首部之后”的长度
-        // caplen 可能更短，所以用 min 防止越界
+     
         if (payloadLen < remaining) {
             remaining = payloadLen;
         }
 
-        // 2) 跳过常见扩展头（支持 mDNS 场景；也避免遇到扩展头就解析错位）
+      
         auto needBytes = [&](int n) { return remaining >= n; };
 
-        // Fragment header 的识别：next == 44
-        // 其它可变长扩展头：长度字段单位 8 字节（不含前 8）
+        
         while (true) {
-            if (next == 0   || // Hop-by-Hop Options
-                next == 43  || // Routing
-                next == 60  || // Destination Options
-                next == 51  || // AH
-                next == 50  )  // ESP (严格来说结构不同，这里只“跳过”可能不准确，但至少不崩)
+            if (next == 0   ||
+                next == 43  || 
+                next == 60  || 
+                next == 51  || 
+                next == 50  )  
             {
                 if (!needBytes(2)) return Packet();
 
-                // 对于 0/43/60：格式是 [NextHeader(1), HdrExtLen(1), ...]
-                // HdrExtLen: 以 8 字节为单位，不包括首 8 字节
-                // AH: [NextHeader, PayloadLen]，PayloadLen 以 4 字节为单位，不包括前 2 个 4 字节
+               
                 int extLenBytes = 0;
 
                 if (next == 51) { // AH
                     if (!needBytes(2)) return Packet();
                     quint8 ahNext = current_head[0];
                     quint8 ahLen  = current_head[1];
-                    // RFC：AH 长度字段单位 4 字节，且不包括前 2 个 4 字节
+                    
                     extLenBytes = (static_cast<int>(ahLen) + 2) * 4;
                     if (!needBytes(extLenBytes)) return Packet();
                     next = ahNext;
-                } else if (next == 50) { // ESP：这里没法可靠跳过（需要 SPI/Seq + 加密体 + ICV）
-                    // 最保守：遇到 ESP 直接停止上层解析，只显示到 IPv6
+                } else if (next == 50) { 
                     result_packet.summary = buildSummary(result_packet.layers, header->len, header->ts);
                     return result_packet;
                 } else {
                     quint8 extNext = current_head[0];
                     quint8 extLen  = current_head[1];
-                    extLenBytes = (static_cast<int>(extLen) + 1) * 8; // +1 表示含前 8 字节
+                    extLenBytes = (static_cast<int>(extLen) + 1) * 8; 
                     if (!needBytes(extLenBytes)) return Packet();
                     next = extNext;
                 }
@@ -214,23 +209,21 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
                 remaining -= extLenBytes;
                 continue;
             }
-            else if (next == 44) { // Fragment header（固定 8 字节）
+            else if (next == 44) { 
                 if (!needBytes(8)) return Packet();
 
-                // Fragment header: next(1), reserved(1), fragOff/flags(2), id(4)
+                
                 quint8 fragNext = current_head[0];
                 quint16 offResM = qFromBigEndian<quint16>(reinterpret_cast<const uchar*>(current_head + 2));
                 quint16 fragOff8 = (offResM >> 3) & 0x1FFF;
                 bool more = (offResM & 0x1) != 0;
 
-                // 这里只做“跳过 fragment header 并继续解析后续”，不做 IPv6 分片重组
-                // 作业要求是 IPv4 分片重组，IPv6 可不实现重组，只要不解析错位即可
+                
                 current_head += 8;
                 remaining -= 8;
                 next = fragNext;
 
-                // 如果是分片且不是首片（fragOff8 != 0），此时上层头不一定在本片里
-                // 最保守：只展示到 IPv6，不继续解析 L4
+               
                 if (fragOff8 != 0 || more) {
                     result_packet.summary = buildSummary(result_packet.layers, header->len, header->ts);
                     return result_packet;
@@ -238,10 +231,10 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
                 continue;
             }
 
-            break; // next 不是扩展头，进入 L4
+            break; 
         }
 
-        // 3) 解析 L4
+
         if (next == 17) { // UDP
             parseUdp(current_head, remaining, result_packet.layers);
             result_packet.layers.transportProto = TransportProtocol::UDP;
@@ -263,9 +256,6 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
         }
 
         if (next == 58) { // ICMPv6
-            // 如果你没有 parseIcmpv6，可以先用现有 parseIcmp（但字段含义不同）
-            // 建议你新写 parseIcmpv6；如果来不及，这里只做 payload 展示
-            // parseIcmpv6(current_head, remaining, result_packet.layers);
 
             result_packet.summary = buildSummary(result_packet.layers, header->len, header->ts);
             result_packet.layers.appPayload =
@@ -273,7 +263,6 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
             return result_packet;
         }
 
-        // 其他 next header：只显示到 IPv6
         result_packet.summary = buildSummary(result_packet.layers, header->len, header->ts);
         return result_packet;
     }
@@ -281,8 +270,8 @@ Packet PacketParser::parse(const pcap_pkthdr *header, const u_char *data,
 
     result_packet.summary = buildSummary(
         result_packet.layers,
-        header->len,          // 报文长度（你也可以用 caplen）
-        header->ts            // pcap 的 timeval，直接传给你的函数
+        header->len,        
+        header->ts            
         );
 
     return result_packet;
@@ -400,13 +389,10 @@ PacketSummary PacketParser::buildSummary(const ParsedLayers &layers, int len, co
 {
     PacketSummary summary;
 
-    // 1) 时间戳
     qint64 msecs = static_cast<qint64>(ts.tv_sec) * 1000
                    + static_cast<qint64>(ts.tv_usec) / 1000;
     summary.timestamp = QDateTime::fromMSecsSinceEpoch(msecs);
     summary.length = len;
-
-    // 2) 工具：MAC / IPv4 / IPv6 -> QString
     auto macToString = [](const quint8 mac[6]) -> QString {
         return QString("%1:%2:%3:%4:%5:%6")
         .arg(mac[0], 2, 16, QLatin1Char('0'))
@@ -434,7 +420,6 @@ PacketSummary PacketParser::buildSummary(const ParsedLayers &layers, int len, co
 
     QString src, dst, proto, info;
 
-    // 3) 先 ARP
     if (layers.hasArp) {
         proto = "ARP";
         src   = ipv4ToString(layers.arp.spa);
@@ -450,7 +435,6 @@ PacketSummary PacketParser::buildSummary(const ParsedLayers &layers, int len, co
             info = QString("ARP op %1 %2 → %3").arg(oper).arg(src, dst);
         }
     }
-    // 4) IPv4（你原来的逻辑）
     else if (layers.hasIp) {
         src = ipv4ToString(layers.ip.srcIp);
         dst = ipv4ToString(layers.ip.dstIp);
@@ -478,7 +462,6 @@ PacketSummary PacketParser::buildSummary(const ParsedLayers &layers, int len, co
             info  = QString("IPv4 proto=%1").arg(layers.ip.protocol);
         }
     }
-    // 5) ✅ 新增：IPv6（核心改动）
     else if (layers.hasIpv6) {
         src = ipv6ToString(layers.ipv6.src);
         dst = ipv6ToString(layers.ipv6.dst);
@@ -497,8 +480,6 @@ PacketSummary PacketParser::buildSummary(const ParsedLayers &layers, int len, co
                        .arg(layers.udp.dstPort)
                        .arg(layers.udp.length);
         } else if (layers.hasIcmp) {
-            // 你如果复用 hasIcmp 来表示 ICMPv6，也能先这样显示；
-            // 更严谨是加 hasIcmpv6/icmpv6 结构体
             proto = "ICMPv6";
             info = QString("ICMPv6 type=%1 code=%2")
                        .arg(layers.icmp.type)
@@ -510,7 +491,6 @@ PacketSummary PacketParser::buildSummary(const ParsedLayers &layers, int len, co
                        .arg(layers.ipv6.hopLimit);
         }
     }
-    // 6) fallback：只有以太网
     else if (layers.hasEth) {
         proto = "Ethernet";
         src   = macToString(layers.eth.srcMac);

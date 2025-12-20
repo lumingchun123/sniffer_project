@@ -26,11 +26,11 @@ enum class TransportProtocol {
 
 struct PacketSummary {
     QDateTime       timestamp;
-    QString         srcAddr;    // IP/MAC 统一转成字符串
+    QString         srcAddr;    
     QString         dstAddr;
-    QString         protocol;   // "ARP"/"TCP"/"UDP" 等
-    QString         info;       // 一行简要信息，列表里显示
-    int             length = 0;     // 报文字节数
+    QString         protocol;   
+    QString         info;       
+    int             length = 0;     
 };
 
 
