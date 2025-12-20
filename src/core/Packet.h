@@ -3,7 +3,7 @@
 #include <QString>
 #include <QDateTime>
 #include "ProtocolHeaders.h"
-
+#include <QMetaType>
 enum class LinkLayerType {
     Ethernet,
     Unknown
@@ -12,7 +12,8 @@ enum class LinkLayerType {
 enum class NetworkProtocol {
     None,
     ARP,
-    IPv4
+    IPv4,
+    IPv6
 };
 
 enum class TransportProtocol {
@@ -56,6 +57,11 @@ public:
     UdpHeader        udp{};
     bool             hasUdp = false;
 
+
+    Ipv6Header ipv6{};
+
+    bool hasIpv6 = false;
+
     QByteArray       appPayload;   // 传输层之后的数据
 };
 
@@ -67,3 +73,4 @@ public:
     QByteArray    rawData;
 };
 
+Q_DECLARE_METATYPE(Packet)

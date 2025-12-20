@@ -65,6 +65,15 @@ struct UdpHeader {
     quint16 checksum;
 };
 
+struct Ipv6Header {
+    quint32 verTcFl;        // version(4) + traffic class(8) + flow label(20), network order
+    quint16 payloadLength;  // network order
+    quint8  nextHeader;
+    quint8  hopLimit;
+    quint8  src[16];
+    quint8  dst[16];
+};
+
 #pragma pack(pop)
 
 

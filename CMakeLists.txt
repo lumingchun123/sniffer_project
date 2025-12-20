@@ -4,7 +4,7 @@ project(sniffer_project VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Quick Widgets Network)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -29,8 +29,8 @@ qt_add_executable(appsniffer_project
     src/ui/MainWindow.h
     src/ui/FilterDialog.cpp
     src/ui/FilterDialog.h
-    src/ui/PacketDetailModel.cpp
-    src/ui/PacketDetailModel.h
+    src/ui/PacketDetailDialog.cpp
+    src/ui/PacketDetailDialog.h
     src/ui/PacketTableModel.cpp
     src/ui/PacketTableModel.h
 
@@ -56,6 +56,7 @@ set_target_properties(appsniffer_project PROPERTIES
 target_link_libraries(appsniffer_project
     PRIVATE Qt6::Quick
             Qt6::Widgets
+            Qt6::Network
             pcap
 
 )
@@ -66,4 +67,6 @@ install(TARGETS appsniffer_project
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+
 

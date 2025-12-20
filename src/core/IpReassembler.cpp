@@ -107,9 +107,8 @@ QByteArray IpReassembler::feedFragment(const IpHeader &ipHeader,
 
     // 如果这是最后一个分片（MF=0），就可以知道完整长度了
     if (!moreFrag) {
-        int headerLen  = (ipHeader.verIhl & 0x0F) * 4;
-        int totalLen   = ipHeader.totalLength;   // IP 头里给的是 包括首部
-        buf.totalLength = totalLen - headerLen;  // 我们只关心 payload 长度
+        const int start = offset8 * 8;
+        buf.totalLength = start + payload.size();   // 注意 payload 就是 IP header 后的数据
     }
 
     // 4) 尝试拼装

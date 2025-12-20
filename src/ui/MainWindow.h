@@ -9,6 +9,8 @@ class QLabel;
 class QListWidget;
 
 #include "../core/CaptureManager.h"
+#include "../core/Packet.h"
+
 
 class MainWindow : public QMainWindow
 {
@@ -25,6 +27,7 @@ private slots:
     void onCaptureStarted();
     void onCaptureStopped();
     void onErrorOccurred(const QString &err);
+    void onItemDoubleClicked();
 
 private:
     void setupUi();
@@ -38,6 +41,7 @@ private:
     QPushButton *m_stopButton   = nullptr;
     QLabel      *m_statusLabel  = nullptr;
     QListWidget *m_packetList   = nullptr;
+    QVector<Packet> m_packets;
 
     int m_packetCount = 0;
 };

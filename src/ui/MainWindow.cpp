@@ -8,12 +8,26 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QMessageBox>
+#include <Qvector>
+#include "../core/Packet.h"
+
+#include "PacketDetailDialog.h"
+#include <QListWidget>
+
+const int  MAX_PACKET_SIZE = 2000;
+
+static constexpr int UI_BATCH_SIZE = 1;
+
+QVector<Packet> m_pendingPackets;   // 等待刷新的包
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    qRegisterMetaType<Packet>("Packet");
     setupUi();
     loadInterfaces();
+
+
 
     // 连接 CaptureManager 的信号
     connect(&m_captureManager, &CaptureManager::packetCaptured,
@@ -69,6 +83,12 @@ void MainWindow::setupUi()
             this, &MainWindow::onStartClicked);
     connect(m_stopButton, &QPushButton::clicked,
             this, &MainWindow::onStopClicked);
+
+    connect(m_packetList, &QListWidget::itemDoubleClicked,
+            this, [this](QListWidgetItem *item){
+                Q_UNUSED(item);
+                onItemDoubleClicked();
+            });//
 }
 
 void MainWindow::loadInterfaces()
@@ -107,6 +127,9 @@ void MainWindow::onStartClicked()
     const QString filterExp = m_filterEdit->text().trimmed();
 
     m_packetCount = 0;
+    m_packets.clear();
+    m_packetList->clear();
+
     m_packetList->clear();
     m_statusLabel->setText(tr("Starting capture..."));
 
@@ -121,21 +144,53 @@ void MainWindow::onStopClicked()
 void MainWindow::onPacketCaptured(const Packet &packet)
 {
 
+    if (m_packetCount >= MAX_PACKET_SIZE){
+        m_packetCount = 0;
+        m_packets.clear();
+        m_packetList->clear();
+
+    }
+
+    // 只做缓存，不立刻更新 UI
+    m_packets.push_back(packet);
+    m_pendingPackets.push_back(packet);
     ++m_packetCount;
 
-    const auto &s = packet.summary;
+    // 不满 100 条，直接返回
+    if (m_pendingPackets.size() < UI_BATCH_SIZE)
+        return;
 
-    QString line = QString("[%1] %2 → %3  %4  (%5 bytes)  %6")
-                       .arg(s.timestamp.toString("HH:mm:ss.zzz"))
-                       .arg(s.srcAddr)
-                       .arg(s.dstAddr)
-                       .arg(s.protocol)
-                       .arg(s.length)
-                       .arg(s.info);
 
-    m_packetList->addItem(line);
+    const bool atBottom =
+        m_packetList->currentRow() == m_packetList->count() - 1
+        || m_packetList->count() == 0;
+
+
+    m_packetList->setUpdatesEnabled(false);
+
+    for (const auto &pkt : m_pendingPackets) {
+        const auto &s = pkt.summary;
+
+        QString line = QString("[%1] %2 → %3  %4  (%5 bytes)  %6")
+                           .arg(s.timestamp.toString("HH:mm:ss.zzz"))
+                           .arg(s.srcAddr)
+                           .arg(s.dstAddr)
+                           .arg(s.protocol)
+                           .arg(s.length)
+                           .arg(s.info);
+
+        m_packetList->addItem(line);
+    }
+
+    m_packetList->setUpdatesEnabled(true);
+    m_pendingPackets.clear();
+
+
     m_statusLabel->setText(
         QString("Capturing... (%1 packets)").arg(m_packetCount));
+    if (atBottom) {
+        m_packetList->setCurrentRow(m_packetList->count() - 1);
+    }
 }
 
 void MainWindow::onCaptureStarted()
@@ -152,4 +207,13 @@ void MainWindow::onErrorOccurred(const QString &err)
 {
     m_statusLabel->setText(tr("Error: %1").arg(err));
     QMessageBox::critical(this, tr("Error"), err);
+}
+
+void MainWindow::onItemDoubleClicked()
+{
+    const int row = m_packetList->currentRow();
+    if (row < 0 || row >= m_packets.size()) return;
+
+    PacketDetailDialog dlg(m_packets[row], this);
+    dlg.exec();
 }

@@ -143,5 +143,7 @@ void CaptureWorker::packetHandler(uchar *user,
     Packet parsed = m_parser->parse(header, packet, m_reassembler);
 
     // 线程间靠信号传 Packet，Qt 会自动做 queued connection（如果在不同线程）
+    if (parsed.rawData.isEmpty() && parsed.summary.protocol.isEmpty())
+        return;
     emit packetCaptured(parsed);
 }
